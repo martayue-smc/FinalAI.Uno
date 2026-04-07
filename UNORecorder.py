@@ -6,10 +6,10 @@ import time
 from support_functions import AsciiDecoder
 
 
-CAMERA_INDEX = 0
+CAMERA_INDEX =2
 SAVE_PATH = "uno_cards.json"
-DISPLAY_SCALE = 2
-FRAME_SIZE = (64, 64)
+DISPLAY_SCALE = 0.5
+FRAME_SIZE = (32, 32)
 
 # ------------------ LABEL MAPS ------------------------------------------
 COLOR_KEYS = {
