@@ -6,7 +6,7 @@ import time
 from support_functions import AsciiDecoder
 
 
-CAMERA_INDEX =2
+CAMERA_INDEX =1
 SAVE_PATH = "uno_cards.json"
 DISPLAY_SCALE = 0.5
 FRAME_SIZE = (32, 32)
@@ -113,8 +113,8 @@ while True:
                 current_label = f"{current_color}_{value}" # -> e.g. "red_5"
             new_card = True
             print(f" Label set: {current_label} - recording frames (press 'c' to continue)")
-        else:
-            print(f" Invalid value key '{key}' for color '{current_color}'. Try again.")
+        #else:
+            #print(f" Invalid value key '{key}' for color '{current_color}'. Try again.")
         continue
 
     # Record frame
