@@ -1,21 +1,19 @@
-import os
+# uno_config.py  -- central settings, imported by all other scripts
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, "uno_model.keras")
-LABELS_PATH = os.path.join(BASE_DIR, "uno_labels.txt")
+# PATHS
+DATASET_DIR = "Data"  # folder containing one sub-folder per class
+MODEL_PATH = "uno_model.keras"  # saved after training
+LABELS_PATH = "uno_labels.txt"  # one label per line, written by uno_train.py
 
-# The frames in uno_cards.json are already 32x32 RGB.
-# We upsample to 64x64 so the CNN has more spatial room to learn from.
-IMG_SIZE = (64, 64)
+# IMG SETTINGS
+IMG_SIZE = (128, 128)  # (height, width) -- must match uno_model.py default
 
-# Training
-BATCH_SIZE = 32
+# HYPERPARAMETERS
 EPOCHS = 50
+BATCH_SIZE = 32
+VAL_SPLIT = 0.2
 LEARNING_RATE = 1e-3
-VAL_SPLIT = 0.2  # 20% of data used for validation
 
-# Real-time camera
-CAMERA_ID = 1
-CONFIDENCE_THRESHOLD = 0.70
-ROI_TOP_LEFT = (100, 60)
-ROI_BOTTOM_RIGHT = (540, 420)
+# CAMERA SETTINGS
+CAMERA_ID = 0
+CONFIDENCE_THRESHOLD = 0.85  # minimum confidence to print/display a prediction
