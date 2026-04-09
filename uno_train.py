@@ -15,31 +15,56 @@ import uno_config as cfg
 from uno_model import build_model
 
 
-# Load and prepare data directly from uno_cards.json
-def load_data(json_path="uno_cards.json"):
-    print(f"[INFO] Loading {json_path} ...")
-    with open(json_path) as f:
-        records = json.load(f)
+def load_data(dataset_dir=cfg.DATASET_DIR):
+    print(f"[INFO] Loading images from '{dataset_dir}' ...")
 
-    print(f"[INFO] {len(records)} records found.")
-
-    target_h, target_w = cfg.IMG_SIZE   # e.g. (64, 64)
+    target_h, target_w = cfg.IMG_SIZE
 
     images = []
     labels = []
 
-    for rec in records:
-        # Convert the nested list to a numpy array: shape (32, 32, 3)
-        frame = np.array(rec["frame"], dtype=np.uint8)
+    class_folders = sorted([
+        d for d in os.listdir(dataset_dir)
+        if os.path.isdir(os.path.join(dataset_dir, d))
+    ])
 
-        # Upsample to target size (lanczos gives sharper results for small->large)
-        if frame.shape[:2] != (target_h, target_w):
-            frame = cv2.resize(frame, (target_w, target_h), interpolation=cv2.INTER_LANCZOS4)
+    if not class_folders:
+        raise RuntimeError(f"No sub-folders found in '{dataset_dir}'. "
+                           f"Each class should be its own folder.")
 
-        images.append(frame)
-        labels.append(rec["label"])
+    print(f"[INFO] Found {len(class_folders)} classes: {class_folders}")
 
-    X = np.array(images, dtype=np.float32) / 255.0   # normalise to [0, 1]
+    for class_name in class_folders:
+        class_path = os.path.join(dataset_dir, class_name)
+        img_files = [
+            f for f in os.listdir(class_path)
+            if f.lower().endswith((".jpg", ".jpeg", ".png", ".bmp"))
+        ]
+
+        if not img_files:
+            print(f"  [WARN] No images found in '{class_path}', skipping.")
+            continue
+
+        for fname in img_files:
+            fpath = os.path.join(class_path, fname)
+            img = cv2.imread(fpath)
+
+            if img is None:
+                print(f"  [WARN] Could not read '{fpath}', skipping.")
+                continue
+
+            # Resize to target size
+            img = cv2.resize(img, (target_w, target_h), interpolation=cv2.INTER_LANCZOS4)
+
+            # Convert BGR (OpenCV default) to RGB (what the model expects)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+            images.append(img)
+            labels.append(class_name)  # folder name is the label e.g. "Blue_0"
+
+    print(f"[INFO] Loaded {len(images)} images total.")
+
+    X = np.array(images, dtype=np.float32) / 255.0  # normalise to [0, 1]
 
     # Encode string labels to integers
     le = LabelEncoder()
@@ -50,19 +75,12 @@ def load_data(json_path="uno_cards.json"):
     return X, y, label_names
 
 
-# Simple numpy-based augmentation applied on-the-fly per batch
+# Augmentation
 def augment_batch(X_batch):
-    """
-    Apply random augmentations to a batch of images.
-    Keeps augmentation light because the source frames are only 32x32.
-    """
     aug = []
     for img in X_batch:
-        # Random horizontal flip (disabled -- 6 vs 9 matters)
-        # Random brightness shift
         delta = np.random.uniform(-0.15, 0.15)
         img = np.clip(img + delta, 0.0, 1.0)
-        # Random small rotation via OpenCV
         angle = np.random.uniform(-12, 12)
         h, w = img.shape[:2]
         M = cv2.getRotationMatrix2D((w / 2, h / 2), angle, 1.0)
@@ -72,7 +90,6 @@ def augment_batch(X_batch):
 
 
 def batch_generator(X, y_cat, batch_size, augment=False):
-    """Yields (X_batch, y_batch) pairs, shuffling each epoch."""
     n = len(X)
     indices = np.arange(n)
     while True:
@@ -85,9 +102,9 @@ def batch_generator(X, y_cat, batch_size, augment=False):
             yield X_batch, y_cat[idx]
 
 
-# Train
-def train(json_path="uno_cards.json"):
-    X, y, label_names = load_data(json_path)
+# TRAIN
+def train(dataset_dir=cfg.DATASET_DIR):
+    X, y, label_names = load_data(dataset_dir)
     num_classes = len(label_names)
 
     # Save label list so uno_camera.py can load it
@@ -96,7 +113,7 @@ def train(json_path="uno_cards.json"):
             f.write(name + "\n")
     print(f"[INFO] Labels saved -> {cfg.LABELS_PATH}")
 
-    # Train / val split (stratified so every class appears in both sets)
+    # Stratified train/val split
     X_train, X_val, y_train, y_val = train_test_split(
         X, y,
         test_size=cfg.VAL_SPLIT,
@@ -106,7 +123,7 @@ def train(json_path="uno_cards.json"):
     print(f"[INFO] Train: {len(X_train)}  Val: {len(X_val)}")
 
     y_train_cat = to_categorical(y_train, num_classes)
-    y_val_cat   = to_categorical(y_val,   num_classes)
+    y_val_cat = to_categorical(y_val, num_classes)
 
     # Build and compile model
     model = build_model(num_classes, cfg.IMG_SIZE)
@@ -117,12 +134,11 @@ def train(json_path="uno_cards.json"):
         metrics=["accuracy"],
     )
 
-    # Steps per epoch
     steps_train = int(np.ceil(len(X_train) / cfg.BATCH_SIZE))
-    steps_val   = int(np.ceil(len(X_val)   / cfg.BATCH_SIZE))
+    steps_val = int(np.ceil(len(X_val) / cfg.BATCH_SIZE))
 
     train_gen = batch_generator(X_train, y_train_cat, cfg.BATCH_SIZE, augment=True)
-    val_gen   = batch_generator(X_val,   y_val_cat,   cfg.BATCH_SIZE, augment=False)
+    val_gen = batch_generator(X_val, y_val_cat, cfg.BATCH_SIZE, augment=False)
 
     callbacks = [
         EarlyStopping(patience=10, restore_best_weights=True, verbose=1),
@@ -147,14 +163,18 @@ def train(json_path="uno_cards.json"):
     # Training curves
     plt.figure(figsize=(12, 4))
     plt.subplot(1, 2, 1)
-    plt.plot(history.history["accuracy"],     label="Train")
+    plt.plot(history.history["accuracy"], label="Train")
     plt.plot(history.history["val_accuracy"], label="Val")
-    plt.title("Accuracy"); plt.legend(); plt.grid(alpha=0.3)
+    plt.title("Accuracy");
+    plt.legend();
+    plt.grid(alpha=0.3)
 
     plt.subplot(1, 2, 2)
-    plt.plot(history.history["loss"],     label="Train")
+    plt.plot(history.history["loss"], label="Train")
     plt.plot(history.history["val_loss"], label="Val")
-    plt.title("Loss"); plt.legend(); plt.grid(alpha=0.3)
+    plt.title("Loss");
+    plt.legend();
+    plt.grid(alpha=0.3)
 
     plt.tight_layout()
     plt.savefig("training_curves.png", dpi=120)
@@ -163,4 +183,4 @@ def train(json_path="uno_cards.json"):
 
 
 if __name__ == "__main__":
-    train("uno_cards.json")
+    train()
