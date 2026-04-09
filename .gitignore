@@ -1,0 +1,15 @@
+# Model files
+*.keras
+*.h5
+*.pkl
+
+# Virtual environment
+.venv/
+venv/
+
+# PyCharm
+.idea/
+
+# Python cache
+__pycache__/
+*.pyc
