@@ -1,4 +1,5 @@
 import json
+import os
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
@@ -28,50 +29,39 @@ def load_data(dataset_dir=cfg.DATASET_DIR):
         if os.path.isdir(os.path.join(dataset_dir, d))
     ])
 
-    if not class_folders:
-        raise RuntimeError(f"No sub-folders found in '{dataset_dir}'. "
-                           f"Each class should be its own folder.")
-
     print(f"[INFO] Found {len(class_folders)} classes: {class_folders}")
 
     for class_name in class_folders:
         class_path = os.path.join(dataset_dir, class_name)
+
         img_files = [
             f for f in os.listdir(class_path)
             if f.lower().endswith((".jpg", ".jpeg", ".png", ".bmp"))
         ]
-
-        if not img_files:
-            print(f"  [WARN] No images found in '{class_path}', skipping.")
-            continue
 
         for fname in img_files:
             fpath = os.path.join(class_path, fname)
             img = cv2.imread(fpath)
 
             if img is None:
-                print(f"  [WARN] Could not read '{fpath}', skipping.")
                 continue
 
-            # Resize to target size
-            img = cv2.resize(img, (target_w, target_h), interpolation=cv2.INTER_LANCZOS4)
-
-            # Convert BGR (OpenCV default) to RGB (what the model expects)
+            img = cv2.resize(img, (target_w, target_h))
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
             images.append(img)
-            labels.append(class_name)  # folder name is the label e.g. "Blue_0"
+            labels.append(class_name)
 
     print(f"[INFO] Loaded {len(images)} images total.")
 
-    X = np.array(images, dtype=np.float32) / 255.0  # normalise to [0, 1]
+    X = np.array(images, dtype=np.float32) / 255.0
 
-    # Encode string labels to integers
     le = LabelEncoder()
     y = le.fit_transform(labels)
     label_names = list(le.classes_)
 
-    print(f"[INFO] Classes ({len(label_names)}): {label_names}")
+    print(f"[INFO] Classes: {label_names}")
+
     return X, y, label_names
 
 
@@ -79,12 +69,18 @@ def load_data(dataset_dir=cfg.DATASET_DIR):
 def augment_batch(X_batch):
     aug = []
     for img in X_batch:
+        # brightness
         delta = np.random.uniform(-0.15, 0.15)
         img = np.clip(img + delta, 0.0, 1.0)
-        angle = np.random.uniform(-12, 12)
+        # rotation
+        angle = np.random.uniform(-5, 5)
         h, w = img.shape[:2]
         M = cv2.getRotationMatrix2D((w / 2, h / 2), angle, 1.0)
         img = cv2.warpAffine(img, M, (w, h))
+        # zoom
+        scale = np.random.uniform(0.95, 1.05)
+        M2 = cv2.getRotationMatrix2D((w / 2, h / 2), 0, scale)
+        img = cv2.warpAffine(img, M2, (w, h))
         aug.append(img)
     return np.array(aug, dtype=np.float32)
 
@@ -118,7 +114,7 @@ def train(dataset_dir=cfg.DATASET_DIR):
         X, y,
         test_size=cfg.VAL_SPLIT,
         random_state=42,
-        stratify=y,
+        stratify=y
     )
     print(f"[INFO] Train: {len(X_train)}  Val: {len(X_val)}")
 
@@ -158,7 +154,9 @@ def train(dataset_dir=cfg.DATASET_DIR):
     # Classification report
     print("\n[INFO] Evaluating on validation set...")
     y_pred = np.argmax(model.predict(X_val, verbose=0), axis=1)
-    print(classification_report(y_val, y_pred, target_names=label_names))
+    present_labels = np.unique(y_val)
+    present_names = [label_names[i] for i in present_labels]
+    print(classification_report(y_val, y_pred, labels=present_labels, target_names=present_names))
 
     # Training curves
     plt.figure(figsize=(12, 4))

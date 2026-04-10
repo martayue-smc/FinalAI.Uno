@@ -12,7 +12,7 @@ IMG_SIZE = (128, 128)  # (height, width) -- must match uno_model.py default
 EPOCHS = 50
 BATCH_SIZE = 32
 VAL_SPLIT = 0.2
-LEARNING_RATE = 1e-3
+LEARNING_RATE = 1e-4
 
 # CAMERA SETTINGS
 CAMERA_ID = 0
