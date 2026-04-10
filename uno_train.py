@@ -69,18 +69,17 @@ def load_data(dataset_dir=cfg.DATASET_DIR):
 def augment_batch(X_batch):
     aug = []
     for img in X_batch:
-        # brightness
-        delta = np.random.uniform(-0.15, 0.15)
-        img = np.clip(img + delta, 0.0, 1.0)
-        # rotation
-        angle = np.random.uniform(-5, 5)
         h, w = img.shape[:2]
+
+        # mild brightness
+        delta = np.random.uniform(-0.1, 0.1)
+        img = np.clip(img + delta, 0.0, 1.0)
+
+        # mild rotation
+        angle = np.random.uniform(-10, 10)
         M = cv2.getRotationMatrix2D((w / 2, h / 2), angle, 1.0)
         img = cv2.warpAffine(img, M, (w, h))
-        # zoom
-        scale = np.random.uniform(0.95, 1.05)
-        M2 = cv2.getRotationMatrix2D((w / 2, h / 2), 0, scale)
-        img = cv2.warpAffine(img, M2, (w, h))
+
         aug.append(img)
     return np.array(aug, dtype=np.float32)
 
@@ -137,7 +136,7 @@ def train(dataset_dir=cfg.DATASET_DIR):
     val_gen = batch_generator(X_val, y_val_cat, cfg.BATCH_SIZE, augment=False)
 
     callbacks = [
-        EarlyStopping(patience=10, restore_best_weights=True, verbose=1),
+        EarlyStopping(patience=20, restore_best_weights=True, verbose=1),
         ModelCheckpoint(cfg.MODEL_PATH, save_best_only=True, verbose=1),
         ReduceLROnPlateau(factor=0.5, patience=5, min_lr=1e-6, verbose=1),
     ]
