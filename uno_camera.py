@@ -37,41 +37,42 @@ def run():
     if not cap.isOpened():
         raise RuntimeError(f"Could not open camera {cfg.CAMERA_ID}. "
                            f"Change CAMERA_ID in uno_config.py")
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH,  640)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
-    pred_buffer = []
-    SMOOTH_N    = 5
-    last_printed = None
-
-    print("[INFO] Camera open. Press Q to quit")
-    print("[INFO] Place a card in front of the camera...\n")
+    print("[INFO] Camera open.")
+    print("[INFO] Press SPACE to recognise card, Q to quit\n")
 
     while True:
         ret, frame = cap.read()
         if not ret:
             continue
 
-        probs   = model.predict(preprocess(frame), verbose=0)[0]
-        top_idx = int(np.argmax(probs))
+        cv2.imshow("UNO Camera (SPACE to scan, Q to quit)", frame)
+        key = cv2.waitKey(1) & 0xFF
 
-        # Smooth predictions via majority vote over last SMOOTH_N frames
-        pred_buffer.append(top_idx)
-        if len(pred_buffer) > SMOOTH_N:
-            pred_buffer.pop(0)
-        smoothed = max(set(pred_buffer), key=pred_buffer.count)
-
-        label      = labels[smoothed] if smoothed < len(labels) else "unknown"
-        confidence = float(probs[smoothed])
-
-        # Only print when confident and when the label changes
-        if confidence >= cfg.CONFIDENCE_THRESHOLD and label != last_printed:
-            print(label)
-            last_printed = label
-
-        cv2.imshow("UNO Camera (Q to quit)", frame)
-        if cv2.waitKey(1) & 0xFF in (ord("q"), 27):
+        if key == ord('q') or key == 27:
             break
+
+        elif key == ord(' '):
+            # take 5 frames and majority vote for stability
+            frames = []
+            for _ in range(5):
+                ret, f = cap.read()
+                if ret:
+                    frames.append(f)
+
+            predictions = []
+            for f in frames:
+                probs = model.predict(preprocess(f), verbose=0)[0]
+                predictions.append(int(np.argmax(probs)))
+
+            # majority vote
+            smoothed = max(set(predictions), key=predictions.count)
+            label = labels[smoothed] if smoothed < len(labels) else "unknown"
+            confidence = float(model.predict(preprocess(frames[-1]), verbose=0)[0][smoothed])
+
+            print(f"Recognised: {label} (confidence: {confidence:.0%})")
 
     cap.release()
     cv2.destroyAllWindows()

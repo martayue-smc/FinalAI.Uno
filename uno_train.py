@@ -36,7 +36,7 @@ def load_data(dataset_dir=cfg.DATASET_DIR):
 
         img_files = [
             f for f in os.listdir(class_path)
-            if f.lower().endswith((".jpg", ".jpeg", ".png", ".bmp"))
+            if f.lower().endswith((".jpg", ".jpeg", ".png", ".bmp", ".HEIC"))
         ]
 
         for fname in img_files:
