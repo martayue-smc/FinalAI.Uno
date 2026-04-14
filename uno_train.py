@@ -137,7 +137,7 @@ def train(dataset_dir=cfg.DATASET_DIR):
 
     callbacks = [
         EarlyStopping(patience=20, restore_best_weights=True, verbose=1),
-        ModelCheckpoint(cfg.MODEL_PATH, save_best_only=True, verbose=1),
+        ModelCheckpoint(cfg.MODEL_PATH, save_best_only=True, monitor='val_accuracy', mode='max', verbose=1), #max validation acc model is saved
         ReduceLROnPlateau(factor=0.5, patience=5, min_lr=1e-6, verbose=1),
     ]
 

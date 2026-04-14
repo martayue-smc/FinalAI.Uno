@@ -15,5 +15,5 @@ VAL_SPLIT = 0.2
 LEARNING_RATE = 0.0005
 
 # CAMERA SETTINGS
-CAMERA_ID = 0
+CAMERA_ID = 2
 CONFIDENCE_THRESHOLD = 0.85  # minimum confidence to print/display a prediction
