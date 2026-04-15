@@ -52,17 +52,24 @@ def augment_batch(X_batch):
     aug = []
     for img in X_batch:
         h, w = img.shape[:2]
-        # brightness
-        img = np.clip(img + np.random.uniform(-0.3, 0.3), 0, 1)
-        # rotation + scale
-        angle = np.random.uniform(-30, 30)
-        scale = np.random.uniform(0.8, 1.2)
 
+        # Gentle brightness + contrast
+        brightness = np.random.uniform(-0.15, 0.15)
+        contrast   = np.random.uniform(0.85, 1.15)
+        img = np.clip(img * contrast + brightness, 0, 1)
+
+        # Small rotation only (cards are held fairly straight)
+        angle = np.random.uniform(-8, 8)
+        scale = np.random.uniform(0.9, 1.1)
         M = cv2.getRotationMatrix2D((w / 2, h / 2), angle, scale)
         img = cv2.warpAffine(img, M, (w, h))
-        # horizontal flip
-        if np.random.rand() < 0.5:
-            img = cv2.flip(img, 1)
+
+        # Small translation
+        tx = np.random.uniform(-0.05 * w, 0.05 * w)
+        ty = np.random.uniform(-0.05 * h, 0.05 * h)
+        T = np.float32([[1, 0, tx], [0, 1, ty]])
+        img = cv2.warpAffine(img, T, (w, h))
+
         aug.append(img)
     return np.array(aug, dtype=np.float32)
 

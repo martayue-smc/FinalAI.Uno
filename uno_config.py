@@ -6,13 +6,13 @@ MODEL_PATH = "uno_model.keras"  # saved after training
 LABELS_PATH = "uno_labels.txt"  # one label per line, written by uno_train.py
 
 # IMG SETTINGS
-IMG_SIZE = (160, 160)   # (height, width) -- must match uno_model.py default
+IMG_SIZE = (164, 164)   # (height, width) -- must match uno_model.py default
 
 # HYPERPARAMETERS
 EPOCHS = 100
-BATCH_SIZE = 32
+BATCH_SIZE = 24
 VAL_SPLIT = 0.2
-LEARNING_RATE = 0.0001
+LEARNING_RATE = 0.0002
 
 # CAMERA SETTINGS
 CAMERA_ID = 2

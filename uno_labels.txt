@@ -4,7 +4,6 @@ Blue_5
 Blue_7
 Blue_9
 Blue_Draw2
-Blue_Reverse
 Blue_Skip
 Green_1
 Green_4
@@ -12,7 +11,6 @@ Green_5
 Green_7
 Green_9
 Green_Draw2
-Green_Reverse
 Green_Skip
 Red_1
 Red_4
@@ -20,7 +18,6 @@ Red_5
 Red_7
 Red_9
 Red_Draw2
-Red_Reverse
 Red_Skip
 Wild
 Wild_Draw4
@@ -30,5 +27,4 @@ Yellow_5
 Yellow_7
 Yellow_9
 Yellow_Draw2
-Yellow_Reverse
 Yellow_Skip

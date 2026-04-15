@@ -8,16 +8,13 @@ from pathlib import Path
 gameplay_model = load_model('my_uno_model.h5')
 
 # load card recognition model
-rec_model = load_model('C:/Users/sanch/PycharmProjects/FinalAI.Uno/my_uno_model.h5')
-with open('C:/Users/sanch/PycharmProjects/FinalAI.Uno/uno_labels.txt') as f:
+rec_model = load_model('C:/Users/ebben/PycharmProjects/FinalAI.Uno/uno_model.keras')
+with open('C:/Users/ebben/PycharmProjects/FinalAI.Uno/uno_labels.txt') as f:
     labels = [line.strip() for line in f if line.strip()]
 
 import uno_config as cfg
 
 env = UnoEnvironment(player_count=2) #cannot play w/ more w/ current rules
-
-for i, card in enumerate(UnoEnvironment.CARD_TYPES):
-    print(f"Index {i}: {card}")
 
 COLOURS = ['Red', 'Green', 'Blue', 'Yellow']
 TYPES = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'Reverse', 'Draw2', 'Skip', 'Wild', 'Wild4']
